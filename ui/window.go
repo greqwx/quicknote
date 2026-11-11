@@ -117,6 +117,7 @@ func (nw *NoteWindow) build() {
 	}
 
 	nw.win.SetContent(content)
+	nw.win.Canvas().Focus(entry)
 
 	nw.win.Canvas().SetOnTypedKey(func(e *fyne.KeyEvent) {
 		if e.Name == fyne.KeyEscape {
