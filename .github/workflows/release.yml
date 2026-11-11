@@ -1,0 +1,92 @@
+# Copyright (c) Greg and Contributors
+
+name: Release
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Generate syso (embed icon)
+        shell: bash
+        run: go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -ico assets/icon.ico
+
+      # Fyne needs cgo for its OpenGL backend, so this stays on the native
+      # windows/amd64 toolchain that the runner ships with.
+      - name: Build
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 1
+        run: go build -trimpath -ldflags="-H windowsgui -s -w" -o quicknote-amd64.exe .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: quicknote-amd64
+          path: quicknote-amd64.exe
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Compose release notes
+        run: |
+          TAG="$GITHUB_REF_NAME"
+
+          # lightweight tags point straight at a commit and have no message of
+          # their own, %(contents) would hand back the commit message instead
+          header=""
+          if [ "$(git cat-file -t "$TAG" 2>/dev/null)" = "tag" ]; then
+            header=$(git tag -l --format='%(contents)' "$TAG" \
+              | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d; /^-----BEGIN SSH SIGNATURE-----$/,$d')
+          fi
+
+          PREV=$(git tag --sort=-version:refname | grep -vxF "$TAG" | sed -n '1p')
+          if [ -z "$PREV" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV}..HEAD"
+          fi
+
+          commits=$(git log "$RANGE" --pretty=format:"- %s ([%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H))" --no-merges)
+
+          {
+            if [ -n "$header" ]; then
+              printf '%s\n\n' "$header"
+            fi
+            printf '%s\n' "$commits"
+          } > "$RUNNER_TEMP/notes.md"
+
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          body_path: ${{ runner.temp }}/notes.md
+          files: dist/*.exe
