@@ -30,7 +30,7 @@ func newTestWindow(t *testing.T) (*NoteWindow, *notes.Storage, string) {
 		Tabs:    config.Tabs{ShowRecentTabs: true, RecentTabsCount: 5},
 	}
 
-	nw := NewNoteWindow(test.NewApp(), cfg, storage)
+	nw := NewNoteWindow(test.NewApp(), cfg, filepath.Join(dir, "config.ini"), storage)
 	t.Cleanup(func() {
 		if nw.win != nil {
 			nw.win.Close()
@@ -93,6 +93,37 @@ func findButton(t *testing.T, nw *NoteWindow, text string) *widget.Button {
 		t.Fatalf("button %q not found", text)
 	}
 	return btn
+}
+
+func buttonExists(nw *NoteWindow, text string) bool {
+	found := false
+	walk(nw.win.Content(), func(o fyne.CanvasObject) {
+		if v, ok := o.(*widget.Button); ok && v.Text == text {
+			found = true
+		}
+	})
+	return found
+}
+
+func TestAutosaveReplacesSaveWithOpenConfig(t *testing.T) {
+	nw, _, _ := newTestWindow(t) // AutoSave is on there
+	nw.Show()
+
+	if buttonExists(nw, "Save") {
+		t.Error("Save should be gone while AutoSave is on")
+	}
+	findButton(t, nw, "Open config")
+	findButton(t, nw, "Clear")
+}
+
+func TestBothButtonsWithoutAutosave(t *testing.T) {
+	nw, _, _ := newTestWindow(t)
+	nw.cfg.General.AutoSave = false
+	nw.Show()
+
+	findButton(t, nw, "Save")
+	findButton(t, nw, "Clear")
+	findButton(t, nw, "Open config")
 }
 
 func TestNoteLabel(t *testing.T) {

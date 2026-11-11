@@ -35,17 +35,13 @@ type Config struct {
 
 // Defaults is what a fresh install starts with.
 func Defaults() *Config {
-	return &Config{
-		General: General{
-			AutoSave:       true,
-			Autostart:      true,
-			NotesDirectory: filepath.Join(documentsDir(), appName),
-		},
-		Tabs: Tabs{
-			ShowRecentTabs:  true,
-			RecentTabsCount: 5,
-		},
-	}
+	cfg := &Config{}
+	cfg.General.AutoSave = true
+	cfg.General.Autostart = true
+	cfg.General.NotesDirectory = filepath.Join(documentsDir(), appName)
+	cfg.Tabs.ShowRecentTabs = true
+	cfg.Tabs.RecentTabsCount = 5
+	return cfg
 }
 
 // Path returns the config location: $QUICKNOTE_CONFIG when set, otherwise the
@@ -120,6 +116,10 @@ func Save(path string, cfg *Config) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
+
+	// the library pads keys to align "=" by default; a config people edit by
+	// hand reads better without it: AutoSave=true
+	ini.PrettyFormat = false
 
 	f := ini.Empty()
 

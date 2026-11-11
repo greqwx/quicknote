@@ -45,7 +45,7 @@ func main() {
 	ui.ApplyTheme(a)
 	a.SetIcon(assets.AppIcon)
 
-	noteWin := ui.NewNoteWindow(a, cfg, storage)
+	noteWin := ui.NewNoteWindow(a, cfg, cfgPath, storage)
 	showNote := func() { noteWin.Show() }
 
 	ui.SetupTray(a, cfg, cfgPath, showNote)

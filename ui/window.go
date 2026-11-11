@@ -22,13 +22,16 @@ const sidePanelWidth float32 = 170
 type NoteWindow struct {
 	app         fyne.App
 	cfg         *config.Config
+	cfgPath     string
 	storage     *notes.Storage
 	win         fyne.Window
 	currentPath string
 }
 
-func NewNoteWindow(app fyne.App, cfg *config.Config, storage *notes.Storage) *NoteWindow {
-	return &NoteWindow{app: app, cfg: cfg, storage: storage}
+// NewNoteWindow builds the popup. cfgPath is the config.ini the "Open config"
+// button opens; an empty path only disables that button.
+func NewNoteWindow(app fyne.App, cfg *config.Config, cfgPath string, storage *notes.Storage) *NoteWindow {
+	return &NoteWindow{app: app, cfg: cfg, cfgPath: cfgPath, storage: storage}
 }
 
 // Show brings the window to the front, creating it if needed.
@@ -82,14 +85,27 @@ func (nw *NoteWindow) build() {
 
 	saveBtn := widget.NewButton("Save", save)
 
+	openConfigBtn := widget.NewButton("Open config", func() {
+		if err := openConfigFile(nw.cfgPath); err != nil {
+			setStatus("Error: " + err.Error())
+			return
+		}
+		setStatus("Opened: " + filepath.Base(nw.cfgPath))
+	})
+
 	clearBtn := widget.NewButton("Clear", func() {
 		entry.SetText("")
 		setStatus("")
 		nw.currentPath = ""
 	})
 
-	buttons := container.NewGridWithColumns(2, saveBtn, clearBtn)
-	bottom := container.NewVBox(buttons, status)
+	actions := container.NewVBox(container.NewGridWithColumns(2, saveBtn, clearBtn), openConfigBtn)
+	if nw.cfg.General.AutoSave {
+		// autosave writes on close, so Save has nothing to do: the config
+		// shortcut takes its place
+		actions = container.NewGridWithColumns(2, openConfigBtn, clearBtn)
+	}
+	bottom := container.NewVBox(actions, status)
 
 	editor := container.NewBorder(nil, bottom, nil, nil, entry)
 	content := fyne.CanvasObject(editor)
