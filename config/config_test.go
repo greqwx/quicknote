@@ -19,6 +19,9 @@ func TestLoadCreatesFullConfig(t *testing.T) {
 	if !cfg.General.AutoSave {
 		t.Errorf("AutoSave = false, want true")
 	}
+	if !cfg.General.Autostart {
+		t.Errorf("Autostart = false, want true")
+	}
 	if cfg.General.NotesDirectory == "" || !strings.HasSuffix(cfg.General.NotesDirectory, "Quicknote") {
 		t.Errorf("NotesDirectory = %q, want .../Quicknote", cfg.General.NotesDirectory)
 	}
@@ -27,7 +30,7 @@ func TestLoadCreatesFullConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read generated config: %v", err)
 	}
-	for _, want := range []string{"[General]", "AutoSave", "NotesDirectory", "[Tabs]", "ShowRecentTabs", "RecentTabsCount"} {
+	for _, want := range []string{"[General]", "AutoSave", "Autostart", "NotesDirectory", "[Tabs]", "ShowRecentTabs", "RecentTabsCount"} {
 		if !strings.Contains(string(data), want) {
 			t.Errorf("generated config is missing %q:\n%s", want, data)
 		}
@@ -39,6 +42,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 
 	want := Defaults()
 	want.General.AutoSave = false
+	want.General.Autostart = false
 	want.General.NotesDirectory = `C:\Users\Greg\Documents\Quicknote`
 	want.Tabs.ShowRecentTabs = false
 	want.Tabs.RecentTabsCount = 12
@@ -68,6 +72,9 @@ func TestLoadKeepsExistingConfig(t *testing.T) {
 	}
 	if cfg.General.AutoSave {
 		t.Errorf("AutoSave = true, want false")
+	}
+	if !cfg.General.Autostart {
+		t.Errorf("Autostart = false, want default true")
 	}
 	if cfg.General.NotesDirectory != "/tmp/notes" {
 		t.Errorf("NotesDirectory = %q, want /tmp/notes", cfg.General.NotesDirectory)

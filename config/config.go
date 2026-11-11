@@ -19,6 +19,7 @@ const (
 
 type General struct {
 	AutoSave       bool
+	Autostart      bool
 	NotesDirectory string
 }
 
@@ -37,6 +38,7 @@ func Defaults() *Config {
 	return &Config{
 		General: General{
 			AutoSave:       true,
+			Autostart:      true,
 			NotesDirectory: filepath.Join(documentsDir(), appName),
 		},
 		Tabs: Tabs{
@@ -91,6 +93,9 @@ func Load(path string) (*Config, error) {
 		if k, err := sec.GetKey("AutoSave"); err == nil {
 			cfg.General.AutoSave, _ = k.Bool()
 		}
+		if k, err := sec.GetKey("Autostart"); err == nil {
+			cfg.General.Autostart, _ = k.Bool()
+		}
 		if k, err := sec.GetKey("NotesDirectory"); err == nil {
 			if v := k.String(); v != "" {
 				cfg.General.NotesDirectory = v
@@ -119,8 +124,9 @@ func Save(path string, cfg *Config) error {
 	f := ini.Empty()
 
 	general := f.Section("General")
-	general.NewKey("AutoSave", strconv.FormatBool(cfg.General.AutoSave)) //nolint:errcheck
-	general.NewKey("NotesDirectory", cfg.General.NotesDirectory)         //nolint:errcheck
+	general.NewKey("AutoSave", strconv.FormatBool(cfg.General.AutoSave))   //nolint:errcheck
+	general.NewKey("Autostart", strconv.FormatBool(cfg.General.Autostart)) //nolint:errcheck
+	general.NewKey("NotesDirectory", cfg.General.NotesDirectory)           //nolint:errcheck
 
 	tabs := f.Section("Tabs")
 	tabs.NewKey("ShowRecentTabs", strconv.FormatBool(cfg.Tabs.ShowRecentTabs)) //nolint:errcheck

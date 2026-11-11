@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/app"
 
 	"quicknote/assets"
+	"quicknote/autostart"
 	"quicknote/config"
 	"quicknote/hotkey"
 	"quicknote/notes"
@@ -25,6 +26,16 @@ func main() {
 		cfg = config.Defaults()
 	}
 
+	// keep the system entry in step with the config: the first run defaults to
+	// on, and toggling the tray item writes the new value back
+	if cfg.General.Autostart {
+		if err := autostart.Enable(); err != nil {
+			log.Printf("autostart: %v", err)
+		}
+	} else if err := autostart.Disable(); err != nil {
+		log.Printf("autostart: %v", err)
+	}
+
 	storage, err := notes.NewStorage(cfg.General.NotesDirectory)
 	if err != nil {
 		log.Fatalf("storage: %v", err)
@@ -37,7 +48,7 @@ func main() {
 	noteWin := ui.NewNoteWindow(a, cfg, storage)
 	showNote := func() { noteWin.Show() }
 
-	ui.SetupTray(a, showNote)
+	ui.SetupTray(a, cfg, cfgPath, showNote)
 
 	stopHotkey, err := hotkey.Register(showNote)
 	if err != nil {
